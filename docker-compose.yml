@@ -1,0 +1,62 @@
+version: "3"
+services:
+  vsftpd:
+    container_name: vsftpd
+    env_file:
+      - .env.vsftpd
+    build:
+      context: ./vsftpd
+      dockerfile: Dockerfile
+    ports:
+      - 0.0.0.0:20:20
+      - 0.0.0.0:21:21
+      - 30000-30010:30000-30010
+    volumes:
+      - ${FTP_VOLUMES}:/home/vsftpd/ftpserver
+      - ${ADMIN_FTP_VOLUMES}:/home/vsftpd/admin
+    environment:
+      - PASV_MIN_PORT=30000
+      - PASV_MAX_PORT=30010
+    restart: always
+  transmission-openvpn:
+    container_name: transmission-openvpn
+    env_file:
+      - .env.transmission-openvpn
+    build:
+      context: ./transmission-openvpn
+      dockerfile: Dockerfile.armhf
+    cap_add: 
+      - NET_ADMIN
+    devices:
+      - "/dev/net/tun"
+    volumes:
+      - ${TRANSMISSION_VOLUMES}:/data
+      - ${TRANSMISSION_VOLUMES}/watch:/data/watch
+      - ./scripts/transmission-scripts/:/scripts/
+      - ./scripts/settings/:/settings/
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=Asia/Seoul
+      - CREATE_TUN_DEVICE=true
+      - WEBPROXY_ENABLED=false
+      - LOCAL_NETWORK=192.168.0.0/24
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_ENABLED=true
+      - TRANSMISSION_SCRIPT_TORRENT_DONE_FILENAME=/scripts/done.sh
+      - TRANSMISSION_TRASH_ORIGINAL_TORRENT_FILES=true
+    ports: 
+      - 9091:9091
+    restart: always  
+  puppeteer:
+    container_name: puppeteer
+    volumes:
+      - ${TRANSMISSION_VOLUMES}:/data
+      - ${TRANSMISSION_VOLUMES}/watch:/data/watch
+      - ${TRANSMISSION_VOLUMES}/puppeteer-home:/data/puppeteer-home
+      - ./scripts/puppeteer-scripts/:/scripts/
+      - ./scripts/settings/:/settings/
+    build:
+      context: .
+      dockerfile: ./puppeteer/Dockerfile
+    environment:
+      - NODE_ENV=production
+    restart: always

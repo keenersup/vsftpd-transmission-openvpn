@@ -1,0 +1,6 @@
+*.env
+.env.*
+.env
+.idea
+*.swp
+node_modules
